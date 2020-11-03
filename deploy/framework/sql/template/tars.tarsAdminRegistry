@@ -12,6 +12,11 @@
 		registryTimeout=150
 	</reap>
     <patch>
+        #call tarspatch server timeout(ms)
+        patch_timeout = 30000
+        #patch history
         patchHistory=200
-    </patch>  	  
+        #path wait timeout(s)
+        patch_wait_timeout = 300
+    </patch>
 </tars>

@@ -1,3 +1,86 @@
+## v2.4.9 2020.10.11
+### en
+- Fix Windows compilation errors 
+- The NPM of nodejs in the installation script supports the selection of Tencent cloud / aliyun
+### cn
+- 修复windows编译错误
+- 安装脚本中nodejs的npm支持tencent cloud/aliyun的选择
+
+## v2.4.8 2020.09.23
+### en
+- tarsregistry sync internel code
+### cn
+- 主控同步内部代码
+
+## v2.4.7 2020.09.16
+### en
+- fix the deployment script, support the overwrite mode, and cover the configuration and template files
+- tarsAdminRegistry supports only historical publishing records (the latest 200 by default), and the configuration can be modified in the template
+- tarsAdminRegistry supports patch timeout configuration, which can be modified in the template
+- Support parameters during deployment, covering configuration files and templates
+- When installing framework slave, if db_tars has not been created, exit
+  
+### cn
+- 完善部署脚本, 支持overwrite模式, 覆盖配置和模板文件 
+- tarsAdminRegistry支持保存历史发布记录(每个服务缺省200条), 可以在模板中修改配置
+- tarsAdminRegistry发布支持超时配置, 可以在模板中修改配置
+- 部署时支持参数, 覆盖配置文件和模板
+- 安装framework slave时, 如果db_tars还没有创建, 则退出
+
+## v2.4.6 2020.09.02
+### en
+- fix node monitor, check keepalive
+- fix java class path
+- add tarsregistry log
+- fix build docker bug, copy tars2case to docker
+### cn
+- 修改tarnode的监控逻辑, 增加keepalive的监控
+- 修改tarsnode java path
+- 增加tarsregistry日志
+- 修复build docker的bug, copy tars2case到容器中
+
+## v2.4.5 2020.08.21
+### en
+- fix tarsnode write config file empty when disk is full 
+- AdminRegistry support patch time > 1 min 
+- fix windows install script
+- Reduce tarsstat & tarsproperty shm memory consumption
+
+### cn
+- 继续修复tarsnode写配置文件可能为空的bug(硬盘满的情况下)
+- tarsAdminRegistry支持发布超大文件(发布超过一分钟), 可配置超时时间
+- 修复windows install script
+- 减小tarsstat & tarsproperty 共享内存大小
+
+## v2.4.4 2020.07.19
+### en
+- fix tarsnode save config bug(when disk is full)
+- update deploy script support web(v2.4.7)
+- fix tarstat & tarspropery only install in master framework
+- tarsAdminRegistry support tarsgo gracefull deploy(web>=v2.4.7)
+### cn
+- 修改tarsnode当硬盘满或者掉电时, 写配置失败的bug
+- 更新部署脚本, 支持web(v2.4.7)
+- 修改安装脚本, tarstat & tarspropery只安装在主节点上
+- tarsAdminRegistry 支持tarsgo优雅发布(需要新版本web >=v2.4.7以上支持)
+
+## v2.4.3 2020.07.03
+### en:
+- tarsregistry add monitor.sh
+- tarsnode get real ip of registry & admin
+- update framework not install tarslog
+- update framework not replace template
+- create db_base for gateway when install framework
+- fix tarsnode server state error
+
+### cn:
+- tarsregistry 增加监控脚本, docker内使用
+- tarsnode 获取registry & admin的ip, 存在代理的情况下
+- 升级framework时, 不再安装tarslog(因为tarslog通常会部署在其他机器)
+- 升级framework时不在替换template
+- 安装framework时创建网关需要的db_base
+- 修复tarsnode server state error
+
 
 ## v2.4.2 2020.06.10
 ### en:

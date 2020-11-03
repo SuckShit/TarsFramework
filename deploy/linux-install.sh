@@ -1,12 +1,12 @@
 #!/bin/bash
 
 #./linux-install.sh 192.168.7.152 Rancher@12345 eth0 false false
-#./inux-install.sh 192.168.7.152 Rancher@12345 eth0 true false
+#./linux-install.sh 192.168.7.152 Rancher@12345 eth0 true false
 
 if (( $# < 7 ))
 then
     echo $#
-    echo "$0 MYSQL_IP MYSQL_PASSWORD INET REBUILD(true/false) SLAVE(false[default]/true) MYSQL_USER MYSQL_PORT";
+    echo "$0 MYSQL_IP MYSQL_PASSWORD INET REBUILD(true/false) SLAVE(false[default]/true) MYSQL_USER MYSQL_PORT OVERWRITE(false/true[default]) NODE_MIRROR(tencentcloud[default]/aliyun)";
     exit 1
 fi
 
@@ -17,6 +17,8 @@ REBUILD=$4
 SLAVE=$5
 DBUSER=$6
 PORT=$7
+OVERWRITE=$8
+MIRROR=$9
 
 if [ "$DBUSER" = "" ]; then
     DBUSER="root"
@@ -38,12 +40,34 @@ if [ "$SLAVE" != "true" ]; then
     SLAVE="false"
 fi
 
+if [ "$OVERWRITE" != "true" ]; then
+    OVERWRITE="false"
+fi
+
+if [ "$MIRROR" = "" ]; then
+    MIRROR="tencentcloud"
+fi
 #########################################################################
 
 NODE_VERSION="v12.13.0"
 
 INSTALL_PATH=/usr/local/app
-MIRROR=http://mirrors.cloud.tencent.com
+
+if [ "$MIRROR" = "tencentcloud" ]; then
+    NODEJS_MIRROR=http://mirrors.cloud.tencent.com/nodejs-release/
+    NPM_MIRROR=http://mirrors.cloud.tencent.com/npm/
+    rm -rf centos7_base.repo
+    curl -O http://mirrors.cloud.tencent.com/repo/centos7_base.repo
+elif [ "$MIRROR" = "aliyun" ]; then
+    NODEJS_MIRROR=http://npm.taobao.org/mirrors/node/
+    NPM_MIRROR=https://registry.npm.taobao.org
+    rm -rf centos7_base.repo
+    curl -O centos7_base.repo http://mirrors.aliyun.com/repo/Centos-7.repo
+else
+    echo "Mirror not support, please add it to this script manually."
+    exit 1
+fi
+
 
 export TARS_INSTALL=$(cd $(dirname $0); pwd)
 
@@ -133,10 +157,10 @@ if [ "${SLAVE}" != "true" ]; then
       exit 1
   fi
 
-  if [ ! -d ${TARS_INSTALL}/web/demo ]; then
-      echo "web not the newest version, please update to the newest version."
-      exit 1
-  fi
+  # if [ ! -d ${TARS_INSTALL}/web/demo ]; then
+  #     echo "web not the newest version, please update to the newest version."
+  #     exit 1
+  # fi
 
   ################################################################################
   #download nodejs
@@ -146,7 +170,7 @@ if [ "${SLAVE}" != "true" ]; then
   CURRENT_NODE_SUCC=`node -e "console.log('succ')"`
   CURRENT_NODE_VERSION=`node --version`
 
-  export NVM_NODEJS_ORG_MIRROR=${MIRROR}/nodejs-release/
+  export NVM_NODEJS_ORG_MIRROR=${NODEJS_MIRROR}
 
   if [[ "${CURRENT_NODE_SUCC}" != "succ"  || "${CURRENT_NODE_VERSION}" < "${NODE_VERSION}" ]]; then
 
@@ -181,17 +205,20 @@ if [ "${SLAVE}" != "true" ]; then
   exec_profile
 
   cd web; npm install;
-  cd demo; npm install;
+
+  if [ -f demo/package.json ]; then
+    cd demo; npm install;
+  fi
+
 fi
 
-npm config set registry ${MIRROR}/npm/; npm install -g npm pm2
+npm config set registry ${NPM_MIRROR}; npm install -g npm pm2
 
 ################################################################################
 
-
 cd ${TARS_INSTALL}
 
-./tars-install.sh ${MYSQLIP} ${PASS} ${HOSTIP} ${REBUILD} ${SLAVE} ${DBUSER}  ${PORT} ${INSTALL_PATH}
+./tars-install.sh ${MYSQLIP} ${PASS} ${HOSTIP} ${REBUILD} ${SLAVE} ${DBUSER}  ${PORT} ${INSTALL_PATH} ${OVERWRITE}
 
 
 ################################################################################

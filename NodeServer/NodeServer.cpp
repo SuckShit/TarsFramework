@@ -19,6 +19,7 @@
 #include "ServerImp.h"
 #include "RegistryProxy.h"
 #include "NodeRollLogger.h"
+#include "util/tc_md5.h"
 
 string NodeServer::g_sNodeIp;
 string NodeServer::NODE_ID = "";
@@ -303,12 +304,6 @@ bool NodeServer::isValid(const string& ip)
         string objs = g_pconf->get("/tars/node<cmd_white_list>", "tars.tarsregistry.AdminRegObj:tars.tarsAdminRegistry.AdminRegObj");
         string ips  = g_pconf->get("/tars/node<cmd_white_list_ip>", "");
 
-        // struct in_addr stSinAddr;
-        // TC_Socket::parseAddr(ServerConfig::LocalIp, stSinAddr);
-
-        // char dst[INET_ADDRSTRLEN] = "\0";
-        // inet_ntop(AF_INET, &stSinAddr, dst, INET_ADDRSTRLEN);
-
         if(!ips.empty())
         {
             ips += ":";
@@ -323,8 +318,14 @@ bool NodeServer::isValid(const string& ip)
         for (size_t i = 0; i < vIp.size(); i++)
         {
             g_ipSet.insert(vIp[i]);
-            LOG->debug() << ips << "g_ipSet insert ip:" << vIp[i] << endl;
+            LOG->debug() << ips << ", g_ipSet insert ip:" << vIp[i] << endl;
         }
+
+        map<string, string> context;
+        //获取实际ip, 穿透代理, 给TarsCloud云使用
+        context["TARS_REAL"] = "true";
+
+        QueryFPrx queryPrx = AdminProxy::getInstance()->getQueryProxy();
 
         for (size_t i = 0; i < vObj.size(); i++)
         {
@@ -333,18 +334,18 @@ bool NodeServer::isValid(const string& ip)
             try
             {
 
-                QueryFPrx queryPrx = Application::getCommunicator()->stringToProxy<QueryFPrx>(obj);
-                vector<EndpointInfo> vActiveEp, vInactiveEp;
-                queryPrx->tars_endpointsAll(vActiveEp, vInactiveEp);
+                vector<EndpointF> vActiveEp, vInactiveEp;
+                queryPrx->findObjectById4All(obj, vActiveEp, vInactiveEp, context);
+                // queryPrx->tars_endpointsAll(vActiveEp, vInactiveEp);
 
                 for (unsigned i = 0; i < vActiveEp.size(); i++)
                 {
-                    tempSet.insert(host2Ip(vActiveEp[i].host()));
+                    tempSet.insert(host2Ip(vActiveEp[i].host));
                 }
 
                 for (unsigned i = 0; i < vInactiveEp.size(); i++)
                 {
-                    tempSet.insert(host2Ip(vInactiveEp[i].host()));
+                    tempSet.insert(host2Ip(vInactiveEp[i].host));
                 }
 
                 TLOGDEBUG("NodeServer::isValid "<< obj << "|tempSet.size():" << tempSet.size() << "|" << tostr(tempSet) << endl);
@@ -509,14 +510,43 @@ int NodeServer::onUpdateConfig(const string &nodeId, const string &sConfigFile, 
 
 		configfile.close();
 
-		string sFileBak     = CONFIG + ".bak";
+        // 如果新template config 和 现在的template config一样， 那么就不写文件更新
+        if ((TC_MD5::md5file(sFileTemp) == TC_MD5::md5file(CONFIG)))
+        {
+            TLOGTARS("NodeServer::onUpdateConfig new-template-file = now-template-file, do not update it." << endl);
+            return 0;
+        }
+
+		string sFileBak = CONFIG + ".bak";
+
 		if(TC_File::isFileExist(CONFIG))
 		{
 			TC_File::copyFile(CONFIG, sFileBak,true);
 		}
 
-		TC_File::copyFile(sFileTemp, CONFIG,true);
-		TC_File::removeFile(sFileTemp,false);
+        // 备份失败， 也不更新
+        if ((TC_MD5::md5file(sFileBak) != TC_MD5::md5file(CONFIG)))
+        {
+            TLOGERROR("NodeServer::onUpdateConfig bak tempalte file error." << endl);
+            return -1;
+        }
+
+		if(TC_File::isFileExist(sFileTemp) && TC_File::getFileSize(sFileTemp) > 10)
+        {
+            TC_Config checkConfig;
+
+            //如果解析失败, 直接跑异常, 就不会执行后续的copy file, 避免错误文件覆盖正常文件
+            checkConfig.parseFile(sFileTemp);
+
+    		TC_File::renameFile(sFileTemp, CONFIG);
+        }
+        else if (TC_File::isFileExist(sFileTemp))
+        {
+            TLOGERROR("NodeServer::onUpdateConfig update template config fail!" << endl);
+            TC_File::removeFile(sFileTemp,false);
+        }
+
+        TLOGDEBUG("NodeServer::onUpdateConfig update tempalte config succ." << endl);
 	}
 	catch(exception &e)
 	{

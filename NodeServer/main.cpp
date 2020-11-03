@@ -34,10 +34,20 @@ void monitorNode(const string &configFile)
     TC_Config conf;
     conf.parseFile(configFile);
 
-    string nodeObj = "AdminObj@"+conf["/tars/application/server<local>"];
+    string serverObj = "tars.tarsnode.ServerObj@" + conf["/tars/application/server/ServerAdapter<endpoint>"];
+    ServerFPrx sprx = CommunicatorFactory::getInstance()->getCommunicator()->stringToProxy<ServerFPrx>(serverObj);
+    unsigned int latestKeepAliveTime = sprx->tars_set_timeout(2000)->getLatestKeepAliveTime();
+    unsigned int kaTimeout = TC_Common::strto<unsigned int>(conf.get("/tars/node/keepalive<synTimeout>", "300"));
+    if (latestKeepAliveTime + kaTimeout < TNOW)
+    {
+        cerr << "MonitorNode fail, keepalive timeout! LatestKeepAliveTime:" << latestKeepAliveTime << ", kaTimeout:" << kaTimeout << ", now:" << TNOW << endl;
+        throw TC_Exception("KeepAlive Timeout", -1);
+    }
+    else
+    {
+        cerr << "MonitorNode ok, latestKeepAliveTime:" << latestKeepAliveTime << ", kaTimeout:" << kaTimeout << endl;
+    }
 
-    ServantPrx prx = CommunicatorFactory::getInstance()->getCommunicator()->stringToProxy<ServantPrx>(nodeObj);
-    prx->tars_set_timeout(1000)->tars_ping();
 }
 
 void parseConfig(int argc, char *argv[])
@@ -45,11 +55,18 @@ void parseConfig(int argc, char *argv[])
     TC_Option tOp;
     tOp.decode(argc, argv);
 
-     if (tOp.hasParam("nodeversion"))
+    if (tOp.hasParam("version"))
     {
-        cout << "Node:" << TARS_VERSION << "." << NODE_VERSION << endl;
+        cout << "TARS:" << Application::getTarsVersion() << endl;
         exit(0);
     }
+    
+    if (tOp.hasParam("nodeversion"))
+    {
+        cout << "Node:" << Application::getTarsVersion() << "_" << NODE_VERSION << endl;
+        exit(0);
+    }
+
 
     if (tOp.hasParam("monitor"))
     {
@@ -80,6 +97,9 @@ void parseConfig(int argc, char *argv[])
         cerr <<"start server with config, for example: "<<endl;
         cerr << argv[0] << " --config=config.conf --nodeid=172.25.38.67" << endl;
         cerr << argv[0] << " --config=config.conf" << endl;
+        cout << TC_Common::outfill("", '-') << endl;
+        cerr << argv[0] << " --version  for view tars-version" << endl;
+        cerr << argv[0] << " --nodeversion  for view tarsnode-version" << endl;
         exit(0);
     }
 
