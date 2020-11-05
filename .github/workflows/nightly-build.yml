@@ -15,7 +15,7 @@ jobs:
     steps:
     - name: docker login
       run: |
-        docker login docker.pkg.github.com -u ${{ secrets.name }} -p ${{ secrets.pass }} 
+        docker login docker.pkg.github.com -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }} 
         # docker login docker.tarsyun.com -u ${{ secrets.tarsname }} -p ${{ secrets.tarspass }} 
     - name: get docker file
       run: git clone https://github.com/TarsCloud/TarsDocker
